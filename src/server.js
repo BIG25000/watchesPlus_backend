@@ -13,7 +13,7 @@ module.exports = function socketServer() {
 
   const io = new Server(server, {
     cors: {
-      origin: [process.env.FRONT_URL],
+      origin: "*",
       credentials: true,
       methods: ["GET", "POST"],
     },
