@@ -3,6 +3,8 @@ const express = require("express");
 const { json, urlencoded } = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const { Server } = require("socket.io");
+const prisma = require("../config/prisma");
 
 //=====================================================local consted Zone
 
@@ -26,7 +28,7 @@ const addressRoute = require("../router/address");
 const mailRoute = require("../router/mail");
 
 //=====================================================Server Zone
-module.exports = function restApiServer(app) {
+module.exports = function restApiServer(app, server) {
   //=====================================================Encoding Zone
   app.use(morgan("dev"));
   app.use(cors());
@@ -34,6 +36,56 @@ module.exports = function restApiServer(app) {
   app.use(urlencoded({ extended: false }));
   app.use(express.static("public"));
 
+  const io = new Server(server, {
+    cors: {
+      origin: ["http://localhost:5173"],
+      credentials: true,
+      methods: ["GET", "POST"],
+    },
+  });
+
+  app.get("", (req, res) => {
+    res.json({ msg: "test socket" });
+  });
+
+  const onlineUser = {};
+
+  io.use((socket, next) => {
+    const authUser = socket.handshake.auth.senderId;
+    console.log(socket.handshake.auth, "auth");
+    onlineUser[authUser] = socket.id;
+    next();
+  });
+
+  io.on("connection", (socket) => {
+    console.log("Client is connected");
+    console.log(onlineUser, "onlineUser");
+
+    socket.on("message", async (data) => {
+      const { receiverId, msg, chatRoomId } = data;
+      const res = await prisma.chatMessage.create({
+        data: {
+          senderId: socket.handshake.auth.senderId,
+          receiverId: +receiverId,
+          message: msg,
+          chatRoomId: +chatRoomId,
+        },
+        include: {
+          sender: true,
+          receiver: true,
+        },
+      });
+      console.log(res, "res");
+      io.to([
+        onlineUser[socket.handshake.auth.senderId],
+        onlineUser[receiverId],
+      ]).emit("message1", { receiverId: receiverId, ...res });
+    });
+
+    socket.on("disconnect", () => {
+      console.log("Client is disconnected");
+    });
+  });
   //=====================================================Routing Zone
   // app.use("/ping", (req, res, next) => {
   //   try {

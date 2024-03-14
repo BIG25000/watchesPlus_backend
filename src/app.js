@@ -17,13 +17,14 @@ const server = http.createServer(app);
 
 //=====================================================Main Functions
 
-restApiServer(app);
-socketServer();
+restApiServer(app, server);
+// socketServer();
 
 //=====================================================Listening Zone
 console.log(`API DOCS ON:  http://${host}:${port}/docs`);
 server.listen(+port, host, () => {
   console.log(`Server is running at http://${host}:${port}`);
+  console.log(`Socket io server is running on port ${port}`);
 });
 
 module.exports = server;
