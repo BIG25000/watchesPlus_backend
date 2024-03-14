@@ -22,7 +22,7 @@ socketServer();
 
 //=====================================================Listening Zone
 console.log(`API DOCS ON:  http://${host}:${port}/docs`);
-app.listen(+port, host, () => {
+server.listen(+port, host, () => {
   console.log(`Server is running at http://${host}:${port}`);
 });
 
