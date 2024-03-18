@@ -251,13 +251,27 @@ module.exports.updateBuyOrderToCancel = async (id) => {
 module.exports.updateSaleOrderToCancel = async (id) => {
   return await prisma.$transaction(async (tx) => {
     // 1.update saleOrder to cancel
-    const updateSaleOrder = await tx.saleOrder.delete({
+    const updateSaleOrder = await tx.saleOrder.update({
       where: { id: id },
+      data : { status : "CANCELED" }
     });
-    //2.คืนของ inventory
-    const returnItem = await tx.inventory.update({
-      where: { id: updateSaleOrder.inventoryId },
+    //2. ค้นหา inventroy เก่า เพื่อเอาไปสร้างใหม่
+    const foundInventory = await tx.inventory.update({
+      where: { 
+        id: updateSaleOrder.inventoryId ,
+        status : "SELLING"
+      },data : {
+        status : "UNAVAILABLE"
+      }
+    
+    });
+    //3.คืนของ inventory
+    const returnItem = await tx.inventory.create({
       data: {
+        watchId : foundInventory.watchId,
+        userId : foundInventory.userId,
+        watchImage : foundInventory.watchImage,
+        referenceNumber : foundInventory.referenceNumber,
         status: "AVAILABLE",
       },
     });
